@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>麻雀得点板</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="scoreboard.js" async></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+  </head>
+  <body id="body">
+    <header>
+      <h1>麻雀得点板</h1>
+    </header>
+
+    <div>
+        <button id="abortive-draw">途中流局</button>
+        <button id="exhaustive-draw">荒牌平局</button>
+        <button id="undo" disabled>UNDO</button>
+        <button id="redo" disabled>REDO</button>
+        <button id="new-game" disabled>NEW GAME</button>
+        <button id="edit" disabled>EDIT</button>
+    </div>
+
+    <pre id="history">NEW GAME</pre>
+
+    <div id="mainboard">
+        <div id="player-3">
+            <div class="wind">西</div>
+            <div class="points">25000</div>
+            <button class="riichi">リーチ</button>
+            <button class="tsumo">ツモ</button>
+            <button class="ron">ロン</button>
+            <button class="hoju" disabled>放銃</button>
+            <select class="fan-minipoint" disabled>
+                <option value="0" selected disabled hidden>Select...</option>
+                <option value="240">30符1飜</option>
+                <option value="320">40符1飜/20符2飜</option>
+                <option value="400">50符1飜/25符2飜</option>
+                <option value="480">60符1飜/30符2飜</option>
+                <option value="560">70符1飜</option>
+                <option value="640">80符1飜/40符2飜/20符3飜</option>
+                <option value="720">90符1飜</option>
+                <option value="800">100符1飜/50符2飜/25符3飜</option>
+                <option value="880">110符1飜</option>
+                <option value="960">60符2飜/30符3飜</option>
+                <option value="1120">70符2飜</option>
+                <option value="1280">80符2飜/40符3飜/20符4飜</option>
+                <option value="1440">90符2飜</option>
+                <option value="1600">100符2飜/50符3飜/25符4飜</option>
+                <option value="1760">110符2飜</option>
+                <option value="1920">60符3飜/30符4飜</option>
+                <option value="2000">満貫</option>
+                <option value="3000">跳満</option>
+                <option value="4000">倍満</option>
+                <option value="6000">三倍満</option>
+                <option value="8000">役満</option>
+                <option value="16000">ダブル役満</option>
+            </select>
+            <button class="tenpai" disabled>聴牌</button>
+            <button class="noten" disabled>不聴</button>
+            <input type="checkbox" id="nagashimangan3" class="nagashimangan" disabled>
+            <label for="nagashimangan3">流し満貫</label>
+        </div>
+        <div id="middle-row">
+        <div id="player-4">
+            <div class="wind">北</div>
+            <div class="points">25000</div>
+            <button class="riichi">リーチ</button>
+            <button class="tsumo">ツモ</button>
+            <button class="ron">ロン</button>
+            <button class="hoju" disabled>放銃</button>
+            <select class="fan-minipoint" disabled>
+                <option value="0" selected disabled hidden>Select...</option>
+                <option value="240">30符1飜</option>
+                <option value="320">40符1飜/20符2飜</option>
+                <option value="400">50符1飜/25符2飜</option>
+                <option value="480">60符1飜/30符2飜</option>
+                <option value="560">70符1飜</option>
+                <option value="640">80符1飜/40符2飜/20符3飜</option>
+                <option value="720">90符1飜</option>
+                <option value="800">100符1飜/50符2飜/25符3飜</option>
+                <option value="880">110符1飜</option>
+                <option value="960">60符2飜/30符3飜</option>
+                <option value="1120">70符2飜</option>
+                <option value="1280">80符2飜/40符3飜/20符4飜</option>
+                <option value="1440">90符2飜</option>
+                <option value="1600">100符2飜/50符3飜/25符4飜</option>
+                <option value="1760">110符2飜</option>
+                <option value="1920">60符3飜/30符4飜</option>
+                <option value="2000">満貫</option>
+                <option value="3000">跳満</option>
+                <option value="4000">倍満</option>
+                <option value="6000">三倍満</option>
+                <option value="8000">役満</option>
+                <option value="16000">ダブル役満</option>
+            </select>
+            <button class="tenpai" disabled>聴牌</button>
+            <button class="noten" disabled>不聴</button>
+            <input type="checkbox" id="nagashimangan4" class="nagashimangan" disabled>
+            <label for="nagashimangan4">流し満貫</label>
+        </div>
+        <div id="centerboard">
+            <div><span id="round">東</span> <span id="rotation">1</span> 局</div>
+            <div><span id="counter">0</span> 本場</div>
+            <div>供託 * <span id="deposit">0</span></div>
+        </div>
+        <div id="player-2">
+            <div class="wind">南</div>
+            <div class="points">25000</div>
+            <button class="riichi">リーチ</button>
+            <button class="tsumo">ツモ</button>
+            <button class="ron">ロン</button>
+            <button class="hoju" disabled>放銃</button>
+            <select class="fan-minipoint" disabled>
+                <option value="0" selected disabled hidden>Select...</option>
+                <option value="240">30符1飜</option>
+                <option value="320">40符1飜/20符2飜</option>
+                <option value="400">50符1飜/25符2飜</option>
+                <option value="480">60符1飜/30符2飜</option>
+                <option value="560">70符1飜</option>
+                <option value="640">80符1飜/40符2飜/20符3飜</option>
+                <option value="720">90符1飜</option>
+                <option value="800">100符1飜/50符2飜/25符3飜</option>
+                <option value="880">110符1飜</option>
+                <option value="960">60符2飜/30符3飜</option>
+                <option value="1120">70符2飜</option>
+                <option value="1280">80符2飜/40符3飜/20符4飜</option>
+                <option value="1440">90符2飜</option>
+                <option value="1600">100符2飜/50符3飜/25符4飜</option>
+                <option value="1760">110符2飜</option>
+                <option value="1920">60符3飜/30符4飜</option>
+                <option value="2000">満貫</option>
+                <option value="3000">跳満</option>
+                <option value="4000">倍満</option>
+                <option value="6000">三倍満</option>
+                <option value="8000">役満</option>
+                <option value="16000">ダブル役満</option>
+            </select>
+            <button class="tenpai" disabled>聴牌</button>
+            <button class="noten" disabled>不聴</button>
+            <input type="checkbox" id="nagashimangan2" class="nagashimangan" disabled>
+            <label for="nagashimangan2">流し満貫</label>
+        </div>
+        </div><!--id="middle-row"-->
+        <div id="player-1">
+            <div class="wind">東</div>
+            <div class="points">25000</div>
+            <button class="riichi">リーチ</button>
+            <button class="tsumo">ツモ</button>
+            <button class="ron">ロン</button>
+            <button class="hoju" disabled>放銃</button>
+            <select class="fan-minipoint" disabled>
+                <option value="0" selected disabled hidden>Select...</option>
+                <option value="240">30符1飜</option>
+                <option value="320">40符1飜/20符2飜</option>
+                <option value="400">50符1飜/25符2飜</option>
+                <option value="480">60符1飜/30符2飜</option>
+                <option value="560">70符1飜</option>
+                <option value="640">80符1飜/40符2飜/20符3飜</option>
+                <option value="720">90符1飜</option>
+                <option value="800">100符1飜/50符2飜/25符3飜</option>
+                <option value="880">110符1飜</option>
+                <option value="960">60符2飜/30符3飜</option>
+                <option value="1120">70符2飜</option>
+                <option value="1280">80符2飜/40符3飜/20符4飜</option>
+                <option value="1440">90符2飜</option>
+                <option value="1600">100符2飜/50符3飜/25符4飜</option>
+                <option value="1760">110符2飜</option>
+                <option value="1920">60符3飜/30符4飜</option>
+                <option value="2000">満貫</option>
+                <option value="3000">跳満</option>
+                <option value="4000">倍満</option>
+                <option value="6000">三倍満</option>
+                <option value="8000">役満</option>
+                <option value="16000">ダブル役満</option>
+            </select>
+            <button class="tenpai" disabled>聴牌</button>
+            <button class="noten" disabled>不聴</button>
+            <input type="checkbox" id="nagashimangan1" class="nagashimangan" disabled>
+            <label for="nagashimangan1">流し満貫</label>
+        </div>
+    </div>
+  </body>
+</html>
+

@@ -1,0 +1,67 @@
+button, select, input, label {
+    font-size: 2vw;
+    pointer-events: auto;
+}
+button:disabled, select:disabled, input:disabled, input:disabled + label {
+    display: none;
+}
+#history {
+    position: absolute;
+    font-size: 1vw;
+    max-height: 70%;
+    overflow-y: auto;
+    padding-right: 3vw;
+}
+.normal-state .riichi,
+.tsumo-state .fan-minipoint,
+.ron-state .ron, .ron-state .hoju, .ron-state .fan-minipoint,
+.exhaustive-draw-state .tenpai, .exhaustive-draw-state .noten {
+    display: initial;
+}
+#middle-row {
+    white-space: nowrap;
+}
+#middle-row:before {
+    content: "";
+    margin-left: -100%;
+}
+#middle-row:after {
+    content: "";
+    margin-right: -100%;
+}
+#player-3, #player-1,
+#centerboard, #player-2, #player-4 {
+    display: inline-block;
+}
+#mainboard {
+    text-align: center;
+    font-size: 3vw;
+    pointer-events: none;
+}
+#player-2 {
+    -webkit-transform: rotate(270deg);
+    transform: rotate(270deg);
+}
+#player-3 {
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
+}
+#player-4 {
+    -webkit-transform: rotate(90deg);
+    transform: rotate(90deg);
+}
+@media screen and (orientation:portrait) {
+   #history {
+       font-size: 2vh;
+       bottom: 0;
+       min-height: 20%;
+       max-height: 50%;
+   } 
+   button, select, input, label {
+       font-size: 2vh;
+   }
+   #mainboard {
+       font-size: 3vh;
+   }
+}
+
