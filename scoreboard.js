@@ -47,7 +47,7 @@
                simpleArraysEqual(this.riichied, state.riichied));
     };
     State.prototype.canRiichi = function /** boolean */ (/** number */ who) {
-        return !this.riichied[who] && this.points[who] >= 1000;
+        return !this.riichied[who];
     };
     State.prototype.riichi = function (/** number */ who) {
         if(this.canRiichi(who)) {
