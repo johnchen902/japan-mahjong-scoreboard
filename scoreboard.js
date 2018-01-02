@@ -1,163 +1,133 @@
-// see http://mahjong-europe.org/docs/riichi_EN.pdf
-// for naming
 (function() {
     "use strict";
-    function /** boolean */ simpleArraysEqual(/** !Array<number> */ a, /** !Array<number> */ b) {
-        /*
-        if (a === b)
-            return true;
-        if (a == null || b == null)
-            return false;
-        if (a.length != b.length)
-            return false;
-        */
-        for (var i = 0; i < a.length; ++i)
-            if (a[i] !== b[i])
-                return false;
-        return true;
+    function replace(arr, index, value) {
+        arr = arr.slice();
+        arr[index] = value;
+        return arr;
     }
-    /** @constructor @struct @final */
-    function State (/** number */ initial) {
-        /** number */ this.round = 0;    // 東
-        /** number */ this.rotation = 0; // 1 局
-        /** number */ this.counter = 0;  // 0 本場
-        /** number */ this.deposit = 0;  // 託供
-        /** !Array<number> */ this.points = [initial, initial, initial, initial];
-        /** !Array<boolean> */ this.riichied = [false, false, false, false];
-    }
-    State.prototype.copyFrom = function /** !State */ (/** !State */ state) {
-        this.round = state.round;
-        this.rotation = state.rotation;
-        this.counter = state.counter;
-        this.deposit = state.deposit;
-        this.points = state.points.slice();
-        this.riichied = state.riichied.slice();
-        return this;
-    };
-    State.prototype.copy = function /** !State */ () {
-        return new State(0).copyFrom(this); 
-    };
-    State.prototype.equals = function /** boolean */ (/** !State */ state) {
-        return this === state ||
-              (this.round == state.round &&
-               this.rotation == state.rotation &&
-               this.counter == state.counter &&
-               this.deposit == state.deposit &&
-               simpleArraysEqual(this.points, state.points) &&
-               simpleArraysEqual(this.riichied, state.riichied));
-    };
-    State.prototype.canRiichi = function /** boolean */ (/** number */ who) {
-        return !this.riichied[who];
-    };
-    State.prototype.riichi = function (/** number */ who) {
-        if(this.canRiichi(who)) {
-            this.riichied[who] = true;
-            this.points[who] -= 1000;
-            this.deposit++;
+    class State {
+        constructor(ba, kyoku, honba, kyoutaku, points, reached) {
+            // {"東南西北"[ba]}{"一二三四"[kyoku]}局
+            // {honba} 本場
+            // 供託 &times; {kyoutaku}
+            this.ba = ba;
+            this.kyoku = kyoku;
+            this.honba = honba;
+            this.kyoutaku = kyoutaku;
+            this.points = Object.freeze(points.slice());
+            this.reached = Object.freeze(reached.slice());
+            Object.freeze(this);
         }
-    };
-    State.prototype.abortiveDraw = function () {
-        this.counter++;
-        this.riichied.fill(false);
-    };
-    State.prototype.exhaustiveDraw = function (/** !Array<boolean> */ tenpai, /** !Array<boolean> */ nagashimangan) {
-        if(nagashimangan.some(x => x)) {
-            nagashimangan.forEach((x, i) =>
-                                  x && this.tsumoPointsOnly(i, 4000, 2000));
-        } else {
-            var /** number */ tenpaiCount = 0;
-            tenpai.forEach(x => x && tenpaiCount++);
-            if(tenpaiCount > 0 && tenpaiCount < 4) {
-                var /** number */ tenpaiPt = 3000 / tenpaiCount;
-                var /** number */ notenPt = 3000 / (4 - tenpaiCount);
-                tenpai.forEach((x, i) => x ? this.points[i] += tenpaiPt
-                    : this.points[i] -= notenPt);
+        static newGameState(initial) {
+            return new State(0, 0, 0, 0,
+                [initial, initial, initial, initial],
+                [false, false, false, false]);
+        }
+        static rotatedState(ba, kyoku, honba, kyoutaku, points, reached) {
+            if (++kyoku == 4) {
+                kyoku = 0;
+                if (++ba == 4)
+                    ba = 0;
+            }
+            return new State(ba, kyoku, honba, kyoutaku, points, reached);
+        }
+        reach(who) {
+            if (this.reached[who])
+                throw new Error(who + " has already reached");
+            return new State(this.ba, this.kyoku, this.honba, this.kyoutaku + 1,
+                replace(this.points, who, this.points[who] - 1000),
+                replace(this.reached, who, true));
+        }
+        abortiveDraw() {
+            return new State(this.ba, this.kyoku, this.honba + 1, this.kyoutaku,
+                this.points, [false, false, false, false]);
+        }
+        exhaustiveDraw(tenpai, nagashimangan) {
+            var points = this.points.slice();
+            if (nagashimangan.some(x => x)) {
+                nagashimangan.forEach((x, i) =>
+                        x && this.calculateTsumoPoints(points, i, 4000, 2000));
+            } else {
+                var tenpaiCount = 0;
+                tenpai.forEach(x => x && tenpaiCount++);
+                if (tenpaiCount > 0 && tenpaiCount < 4) {
+                    var tenpaiPt = 3000 / tenpaiCount;
+                    var notenPt = 3000 / (4 - tenpaiCount);
+                    tenpai.forEach((x, i) => x ? points[i] += tenpaiPt
+                        : points[i] -= notenPt);
+                }
+            }
+            if (tenpai[this.kyoku]) {
+                return new State(this.ba, this.kyoku, this.honba + 1,
+                    this.kyoutaku, points, [false, false, false, false]);
+            } else {
+                return State.rotatedState(this.ba, this.kyoku, this.honba + 1,
+                    this.kyoutaku, points, [false, false, false, false]);
             }
         }
-        this.counter++;
-        this.riichied.fill(false);
-        if(!tenpai[this.rotation])
-            this.rotate();
-    };
-    State.prototype.ron = function(/** number */ loser, /** !Array<number> */ winner, /** !Array<number> */ point) {
-        var /** number */ firstWinner = winner[0];
-        for(var /** number */ i = 0; i < winner.length; i++)
-        if((winner[i] - loser + 4) % 4 < (firstWinner - loser + 4) % 4)
-            firstWinner = winner[i];
-        for(var i = 0; i < winner.length; i++) {
-            var /** number */ pt = (point[i] | 0);
-            if(winner[i] == firstWinner)
-                pt += this.counter * 300;
-            this.ronPointsOnly(loser, winner[i], pt);
-        }
+        ron(loser, winners, ronPointsArr) {
+            winners = winners.slice();
+            winners.sort((a, b) => (a - loser + 4) % 4 - (b - loser + 4) % 4);
+            var ronPointsMap = [];
+            winners.forEach((w, i) => ronPointsMap[w] = ronPointsArr[i]);
 
-        this.points[firstWinner] += this.deposit * 1000;
-        this.deposit = 0;
-        if(winner.indexOf(this.rotation) != -1) {
-            this.counter++;
-        } else {
-            this.counter = 0;
-            this.rotate();
-        }
-        this.riichied.fill(false);
-    };
-    State.prototype.ronPointsOnly = function (/** number */ loser, /** number */ winner, /** number */ point) {
-        this.points[loser] -= point;
-        this.points[winner] += point;
-    };
-    State.prototype.tsumo = function (/** number */ who, /** number */ eastPoint, /** number */ otherPoint) {
-        eastPoint += this.counter * 100;
-        otherPoint += this.counter * 100;
-        this.tsumoPointsOnly(who, eastPoint, otherPoint);
-        this.points[who] += this.deposit * 1000;
-        this.deposit = 0;
-        if(who == this.rotation) {
-            this.counter++;
-        } else {
-            this.counter = 0;
-            this.rotate();
-        }
-        this.riichied.fill(false);
-    };
-    State.prototype.tsumoPointsOnly = function (/** number */ who, /** number */ east, /** number */ other) {
-        if(who == this.rotation) {
-            this.points[who] += east * 3;
-            for(var /** number */ i = 0; i < 4; i++)
-            if(i != who)
-                this.points[i] -= east;
-        } else {
-            this.points[who] += east + other * 2;
-            for(var i = 0; i < 4; i++)
-            if(i != who) {
-                if(i == this.rotation)
-                    this.points[i] -= east;
-                else
-                    this.points[i] -= other;
+            var points = this.points.slice();
+            for (var i = 0; i < winners.length; i++) {
+                var who = winners[i], pt = ronPointsMap[who];
+                if (i == 0)
+                    pt += this.honba * 300;
+                points[who] += pt;
+                points[loser] -= pt;
+                if (i == 0)
+                    points[who] += this.kyoutaku * 1000;
+            }
+
+            if (winners.indexOf(this.kyoku) != -1) {
+                return new State(this.ba, this.kyoku, this.honba + 1, 0,
+                    points, [false, false, false, false]);
+            } else {
+                return State.rotatedState(this.ba, this.kyoku, 0, 0,
+                    points, [false, false, false, false]);
             }
         }
-    };
-    State.prototype.chombo = function (/** number */ who) {
-        this.tsumoPointsOnly(who, -4000, -2000);
-    };
-    State.prototype.rotate = function () {
-        if(++this.rotation == 4) {
-            this.rotation = 0;
-            if(++this.round == 4)
-                this.round = 0;
+        tsumo(who, doublePoint, usualPoint) {
+            doublePoint += this.honba * 100;
+            usualPoint += this.honba * 100;
+
+            var points = this.points.slice();
+            this.calculateTsumoPoints(points, who, doublePoint, usualPoint);
+            points[who] += this.kyoutaku * 1000;
+
+            if (who == this.kyoku) {
+                return new State(this.ba, this.kyoku, this.honba + 1, 0,
+                    points, [false, false, false, false]);
+            } else {
+                return State.rotatedState(this.ba, this.kyoku, 0, 0,
+                    points, [false, false, false, false]);
+            }
         }
-    };
-    /** @constructor @struct @final */
+        calculateTsumoPoints(points, who, doublePoint, usualPoint) {
+            for (var i = 0; i < 4; i++) {
+                if (i == who)
+                    continue;
+                var payDouble = i == this.kyoku || who == this.kyoku;
+                var point = payDouble ? doublePoint : usualPoint;
+                points[who] += point;
+                points[i] -= point;
+            }
+        }
+    }
     function PlayerUI(parent) {
-        /** !Object */ this.wind = parent.getElementsByClassName("wind")[0];
-        /** !Object */ this.points = parent.getElementsByClassName("points")[0];
-        /** !Object */ this.riichi = parent.getElementsByClassName("riichi")[0];
-        /** !Object */ this.tsumo = parent.getElementsByClassName("tsumo")[0];
-        /** !Object */ this.ron = parent.getElementsByClassName("ron")[0];
-        /** !Object */ this.hoju = parent.getElementsByClassName("hoju")[0];
-        /** !Object */ this.fanMinipoint = parent.getElementsByClassName("fan-minipoint")[0];
-        /** !Object */ this.tenpai = parent.getElementsByClassName("tenpai")[0];
-        /** !Object */ this.noten = parent.getElementsByClassName("noten")[0];
-        /** !Object */ this.nagashimangan = parent.getElementsByClassName("nagashimangan")[0];
+        this.wind = parent.getElementsByClassName("wind")[0];
+        this.points = parent.getElementsByClassName("points")[0];
+        this.riichi = parent.getElementsByClassName("riichi")[0];
+        this.tsumo = parent.getElementsByClassName("tsumo")[0];
+        this.ron = parent.getElementsByClassName("ron")[0];
+        this.hoju = parent.getElementsByClassName("hoju")[0];
+        this.fanMinipoint = parent.getElementsByClassName("fan-minipoint")[0];
+        this.tenpai = parent.getElementsByClassName("tenpai")[0];
+        this.noten = parent.getElementsByClassName("noten")[0];
+        this.nagashimangan = parent.getElementsByClassName("nagashimangan")[0];
     }
     PlayerUI.prototype.disableAll = function () {
         this.riichi.disabled = true;
@@ -169,28 +139,28 @@
         this.noten.disabled = true;
         this.nagashimangan.disabled = true;
     };
-    /** @constructor @struct @final */
+
     function UI() {
-        /** !Object */ this.round = document.getElementById("round");
-        /** !Object */ this.rotation = document.getElementById("rotation");
-        /** !Object */ this.counter = document.getElementById("counter");
-        /** !Object */ this.deposit = document.getElementById("deposit");
-        /** Array<!PlayerUI> */ this.players = [];
+        this.ba = document.getElementById("round");
+        this.kyoku = document.getElementById("rotation");
+        this.honba = document.getElementById("counter");
+        this.kyoutaku = document.getElementById("deposit");
+        this.players = [];
         this.players[0] = new PlayerUI(document.getElementById("player-1"));
         this.players[1] = new PlayerUI(document.getElementById("player-2"));
         this.players[2] = new PlayerUI(document.getElementById("player-3"));
         this.players[3] = new PlayerUI(document.getElementById("player-4"));
-        /** !Object */ this.abortiveDraw = document.getElementById("abortive-draw");
-        /** !Object */ this.exhaustiveDraw = document.getElementById("exhaustive-draw");
-        /** !Object */ this.undo = document.getElementById("undo");
-        /** !Object */ this.redo = document.getElementById("redo");
-        /** !Object */ this.newGame = document.getElementById("new-game");
-        /** !Object */ this.edit = document.getElementById("edit");
-        /** !Object */ this.history = document.getElementById("history");
+        this.abortiveDraw = document.getElementById("abortive-draw");
+        this.exhaustiveDraw = document.getElementById("exhaustive-draw");
+        this.undo = document.getElementById("undo");
+        this.redo = document.getElementById("redo");
+        this.newGame = document.getElementById("new-game");
+        this.edit = document.getElementById("edit");
+        this.history = document.getElementById("history");
     }
     UI.prototype.disableAll = function () {
-        for(var /** number */ i = 0; i < 4; i++)
-        this.players[i].disableAll();
+        for(var i = 0; i < 4; i++)
+            this.players[i].disableAll();
         this.abortiveDraw.disabled = true;
         this.exhaustiveDraw.disabled = true;
         this.undo.disabled = true;
@@ -198,36 +168,36 @@
         this.newGame.disabled = true;
         this.edit.disabled = true;
     };
-    var /** !UI */ ui;
-    function showState(/** !State */ state) {
-        /** @const {string} */ var winds = "東南西北";
-        ui.round.textContent = winds[state.round];
-        ui.rotation.textContent = state.rotation + 1;
-        ui.counter.textContent = state.counter;
-        ui.deposit.textContent = state.deposit;
-        for(var /** number */ i = 0; i < 4; i++) {
-            var /** !PlayerUI */ p = ui.players[i];
-            p.wind.textContent = winds[(i - state.rotation + 4) % 4];
+    var ui;
+    function showState(state) {
+        var winds = "東南西北";
+        ui.ba.textContent = winds[state.ba];
+        ui.kyoku.textContent = state.kyoku + 1;
+        ui.honba.textContent = state.honba;
+        ui.kyoutaku.textContent = state.kyoutaku;
+        for(var i = 0; i < 4; i++) {
+            var p = ui.players[i];
+            p.wind.textContent = winds[(i - state.kyoku + 4) % 4];
             p.points.textContent = state.points[i];
         }
     }
     var history = function() {
-        /** @const {!State} */ var currentState = new State(25000);
-        /** @const {!Array<!State>} */ var historyState = [new State(25000)];
-        var /** string */ currentText = "?";
-        /** @const {!Array<string>} */ var historyText = ["NEW GAME"];
-        var /** number */ historyPointer = 0;
+        var currentState = State.newGameState(25000);
+        var historyState = [currentState];
+        var currentText = "?";
+        var historyText = ["NEW GAME"];
+        var historyPointer = 0;
         function prefixText() {
-            return ("東南西北"[currentState.round]) + " " + 
-                (currentState.rotation + 1) + " 局 " + currentState.counter + " 本場 ";
+            return ("東南西北"[currentState.ba]) + " " +
+                (currentState.kyoku + 1) + " 局 " + currentState.honba + " 本場 ";
         }
-        function playerText(/** number */ who) {
+        function playerText(who) {
             return "P" + (who + 1);
         }
         function pushHistory() {
             showState(currentState);
             historyState.splice(historyPointer + 1);
-            historyState.push(currentState.copy());
+            historyState.push(currentState);
             historyText.splice(historyPointer + 1);
             historyText.push(currentText);
             currentText = "?";
@@ -238,27 +208,27 @@
             return currentState;
         }
         function riichi(/** number */ who) {
-            currentText = prefixText() + playerText(who) + " リーチ"; 
-            currentState.riichi(who);
+            currentText = prefixText() + playerText(who) + " リーチ";
+            currentState = currentState.reach(who);
             pushHistory();
         }
         function tsumo(/** number */ who, /** number */ east, /** number */ rest) {
-            currentText = prefixText() + playerText(who) + " ツモ " + east + 
-                       (who == currentState.rotation ? "∀" : "-" + rest);
-            currentState.tsumo(who, east, rest);
-            pushHistory() ;
+            currentText = prefixText() + playerText(who) + " ツモ " + east +
+                       (who == currentState.kyoku ? "∀" : "-" + rest);
+            currentState = currentState.tsumo(who, east, rest);
+            pushHistory();
         }
         function ron(/** number */ loser, /** !Array<number> */ winners, /** !Array<number> */ points) {
             currentText = prefixText();
             for(var /** number */ i = 0; i < winners.length; i++)
                 currentText += playerText(winners[i]) + " ロン " + points[i] + " ";
             currentText += playerText(loser) + " 放銃";
-            currentState.ron(loser, winners, points);
+            currentState = currentState.ron(loser, winners, points);
             pushHistory();
         }
         function abortiveDraw() {
             currentText = prefixText() + "途中流局";
-            currentState.abortiveDraw();
+            currentState = currentState.abortiveDraw();
             pushHistory();
         }
         function exhaustiveDraw(/** !Array<boolean> */ tenpai, /** !Array<boolean> */ nagashimangan) {
@@ -267,8 +237,8 @@
                 for(var /** number */ i = 0; i < 4; i++)
                     if(nagashimangan[i])
                         currentText += " " + playerText(i);
-                currentText += " 流し満貫 " + playerText(currentState.rotation) + " " + 
-                    (tenpai[currentState.rotation] ? "聴牌" : "不聴");
+                currentText += " 流し満貫 " + playerText(currentState.kyoku) + " " +
+                    (tenpai[currentState.kyoku] ? "聴牌" : "不聴");
             } else {
                 var tenpaiCount = 0;
                 for(var i = 0; i < 4; i++)
@@ -289,22 +259,19 @@
                     break;
                 }
             }
-            currentState.exhaustiveDraw(tenpai, nagashimangan);
+            currentState = currentState.exhaustiveDraw(tenpai, nagashimangan);
             pushHistory();
-        }
-        function /** boolean */ isNewGame() {
-            return currentState.equals(historyState[0]);
         }
         function newGame() {
             currentText = "NEW GAME";
-            currentState.copyFrom(historyState[0]);
+            currentState = historyState[0];
             pushHistory();
         }
         function /** boolean */ canUndo() {
             return historyPointer > 0;
         }
         function undo() {
-            currentState.copyFrom(historyState[--historyPointer]);
+            currentState = historyState[--historyPointer];
             showState(currentState);
             ui.history.textContent = historyText.slice(0, historyPointer + 1).join("\n");
         }
@@ -312,7 +279,7 @@
             return historyPointer < historyState.length - 1;
         }
         function redo() {
-            currentState.copyFrom(historyState[++historyPointer]);
+            currentState = historyState[++historyPointer];
             showState(currentState);
             ui.history.textContent = historyText.slice(0, historyPointer + 1).join("\n");
         }
@@ -324,7 +291,6 @@
             /** function(number,!Array<number>,!Array<number>) */ ron: ron,
             /** function() */ abortiveDraw: abortiveDraw,
             /** function(!Array<boolean>,!Array<boolean>) */ exhaustiveDraw: exhaustiveDraw,
-            /** function():boolean */ isNewGame: isNewGame,
             /** function() */ newGame: newGame,
             /** function():boolean */ canUndo: canUndo,
             /** function() */ undo: undo,
@@ -367,7 +333,7 @@
         setBodyClass("normal-state");
 
         ui.players.forEach((p, who) => {
-            if(history.current().canRiichi(who)) {
+            if (!history.current().reached[who]) {
                 buttonListeners.add(p.riichi, function() {
                     history.riichi(who);
                     leaveNormalUIState();
@@ -392,7 +358,7 @@
             leaveNormalUIState();
             enterExhaustiveDrawUIState();
         });
-        if(!history.isNewGame()) {
+        if (true) {
             buttonListeners.add(ui.newGame, function() {
                 history.newGame();
                 leaveNormalUIState();
@@ -466,7 +432,7 @@
                     var /** number */ val = p.fanMinipoint.value | 0;
                     if(val) {
                         var /** function(number): number */ c100 = x => Math.ceil(x / 100) * 100;
-                        var east = history.current().rotation;
+                        var east = history.current().kyoku;
                         points[0] = c100(val * (who == east ? 6 : 4));
                         p.fanMinipoint.disabled = true;
                         p.fanMinipoint.onchange = () => false;
@@ -487,7 +453,7 @@
                         var /** number */ val = p.fanMinipoint.value | 0;
                         if(val) {
                             var /** function(number): number */ c100 = x => Math.ceil(x / 100) * 100;
-                            var east = history.current().rotation;
+                            var east = history.current().kyoku;
                             points[id] = c100(val * (who == east ? 6 : 4));
                             p.fanMinipoint.disabled = true;
                             p.fanMinipoint.onchange = () => false;
@@ -544,7 +510,7 @@
             buttonListeners.add(p.noten, () => select(false));
             p.nagashimangan.disabled = false;
             p.nagashimangan.checked = false;
-            if(history.current().riichied[who])
+            if(history.current().reached[who])
                 select(true);
         });
         buttonListeners.add(ui.undo, function() {
