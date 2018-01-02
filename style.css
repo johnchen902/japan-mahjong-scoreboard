@@ -50,6 +50,30 @@ button:disabled, select:disabled, input:disabled, input:disabled + label {
     -webkit-transform: rotate(90deg);
     transform: rotate(90deg);
 }
+.newgame-n {
+  color: #fabf15;
+}
+.newgame-e1 {
+  color: #c3d83f;
+}
+.newgame-w {
+  color: #b5b295;
+}
+.newgame-g {
+  color: #c37bb1;
+}
+.newgame-a {
+  color: #95d0b6;
+}
+.newgame-m {
+  color: #ed7980;
+}
+.newgame-e2 {
+  color: #81cddb;
+}
+.newgame-exclam {
+  color: #f18f57;
+}
 @media screen and (orientation:portrait) {
    #history {
        font-size: 2vh;
