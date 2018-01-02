@@ -1,55 +1,96 @@
-button, select, input, label {
-    font-size: 2vw;
-    pointer-events: auto;
-}
 button:disabled, select:disabled, input:disabled, input:disabled + label {
+  display: none;
+}
+
+#control-panel button:disabled + br {
+  display: none;
+}
+@media screen and (orientation:portrait) {
+  #control-panel br {
     display: none;
+  }
 }
+
 #history {
-    position: absolute;
-    font-size: 1vw;
-    max-height: 70%;
-    overflow-y: auto;
-    padding-right: 3vw;
+  max-height: 70%;
+  overflow-y: auto;
+  padding-right: 2em;
 }
-.normal-state .riichi,
-.tsumo-state .fan-minipoint,
-.ron-state .ron, .ron-state .hoju, .ron-state .fan-minipoint,
-.exhaustive-draw-state .tenpai, .exhaustive-draw-state .noten {
-    display: initial;
-}
-#middle-row {
-    white-space: nowrap;
-}
-#middle-row:before {
-    content: "";
-    margin-left: -100%;
-}
-#middle-row:after {
-    content: "";
-    margin-right: -100%;
-}
-#player-3, #player-1,
-#centerboard, #player-2, #player-4 {
-    display: inline-block;
-}
-#mainboard {
-    text-align: center;
-    font-size: 3vw;
-    pointer-events: none;
-}
+
+/* Get the layout */
 #player-2 {
-    -webkit-transform: rotate(270deg);
-    transform: rotate(270deg);
+  -webkit-transform: rotate(270deg);
+  transform: translate(-3.5em, 3.5em) rotate(270deg);
 }
 #player-3 {
-    -webkit-transform: rotate(180deg);
-    transform: rotate(180deg);
+  -webkit-transform: rotate(180deg);
+  transform: rotate(180deg);
 }
 #player-4 {
-    -webkit-transform: rotate(90deg);
-    transform: rotate(90deg);
+  -webkit-transform: rotate(90deg);
+  transform: translate(-3.5em, 3.5em) rotate(90deg);
 }
+#player-1, #player-2, #player-3, #player-4 {
+  width: 11em;
+  height: 4em;
+  white-space: nowrap;
+}
+#outer-player-2, #outer-player-4 {
+  width: 4em;
+  height: 11em;
+  vertical-align: middle;
+}
+#centerboard {
+  width: 11em;
+  height: 11em;
+  vertical-align: middle;
+  border: 1px solid black;
+}
+#player-1, #outer-player-2, #player-3, #outer-player-4 {
+  display: inline-block;
+}
+#middle-row {
+  white-space: nowrap;
+}
+#mainboard {
+  text-align: center;
+  font-size: 5vw;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-right: -50%;
+  transform: translate(-50%, -50%);
+}
+@media screen and (orientation:landscape) {
+  #mainboard {
+    font-size: 5vh;
+  }
+}
+
+/* Adjust button sizes */
+#mainboard button, #mainboard select, #mainboard input, #mainboard label {
+  font-size: 0.667em;
+}
+
+/* Prevent #mainboard blocking buttons */
+#mainboard {
+  pointer-events: none;
+}
+button, select, input, label {
+  pointer-events: auto;
+}
+
+/* Centering items in the middle */
+#centerboard {
+  display: inline-flex;
+  align-items: center;
+}
+#innercenterboard {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* NEW GAME! */
 .newgame-n {
   color: #fabf15;
 }
@@ -74,18 +115,3 @@ button:disabled, select:disabled, input:disabled, input:disabled + label {
 .newgame-exclam {
   color: #f18f57;
 }
-@media screen and (orientation:portrait) {
-   #history {
-       font-size: 2vh;
-       bottom: 0;
-       min-height: 20%;
-       max-height: 50%;
-   } 
-   button, select, input, label {
-       font-size: 2vh;
-   }
-   #mainboard {
-       font-size: 3vh;
-   }
-}
-
